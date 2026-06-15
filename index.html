@@ -786,18 +786,33 @@ const RESULT_SEMESTERS = {
   BED:[1,2,3]
 };
 
+const BACKPAPER_SEMESTERS = {
+  BSC:[1,2,3],
+  BCOM:[1,2,3],
+  BA:[1,2,3],
+  MA:[1,2,3],
+  BED:[1,2,3]
+};
 /* CLOSE POPUP */
 
 function closePopup(){
-
+history.replaceState(null, "", location.href);
 document.getElementById("resultPopup").style.display = "none";
 
 document.getElementById("resultFrame").src = "";
 
 document.getElementById("pdfLoader").style.display = "none";
+resultLink = "";
+
+let btn = document.getElementById("actionBtn");
+
+btn.innerHTML = "📄 Download Result";
+
+btn.style.background = "";
+
+btn.onclick = openFullResult;
 
 }
-
 /* OPEN FULL RESULT */
 
 async function openFullResult(){
@@ -882,8 +897,24 @@ document.getElementById("roll").value.trim();
 let semester =
 document.getElementById("sem").value;
 
+let examType =
+document.getElementById("examType").value;
+
+if(examType === "BACKPAPER"){
+
 a.download =
-rollNo + "_Semester_" + semester + ".pdf";
+rollNo + "_BackPaper_Sem_" +
+semester +
+".pdf";
+
+}else{
+
+a.download =
+rollNo + "_Sem_" +
+semester +
+".pdf";
+
+}
 
 document.body.appendChild(a);
 
@@ -1017,7 +1048,23 @@ fetch(url)
 document.getElementById("loading")
 .style.display = "none";
 
+if(data.status === "notuploaded"){
+
+error.innerHTML =
+"<div style='text-align:center;'><span style='display:inline-block;background:#fee2e2;padding:8px 14px;border-radius:8px;border:2px solid #dc2626;color:#b91c1c;font-size:13px;font-weight:500;'>🚫 RESULT NOT UPLOADED</span></div>";
+
+return;
+
+}
+
 if(data.status === "found"){
+let btn = document.getElementById("actionBtn");
+
+btn.innerHTML = "📄 Download Result";
+
+btn.style.background = "";
+
+btn.onclick = openFullResult;
 
 document.getElementById("studentName")
 .innerHTML =
@@ -1036,16 +1083,14 @@ document.getElementById("studentSemester").innerHTML =
 }
 resultLink =
 data.link || "";
-let pdfUrl =
-"https://docs.google.com/gview?embedded=true&url=" +
-encodeURIComponent(resultLink);
+resultLink = data.link || "";
 
 document.getElementById("resultPopup").style.display = "flex";
+history.pushState({popup:true}, "", "");
 
 document.getElementById("pdfLoader").style.display = "flex";
 
-let frame =
-document.getElementById("resultFrame");
+let frame = document.getElementById("resultFrame");
 
 frame.onload = function(){
 
@@ -1053,7 +1098,56 @@ document.getElementById("pdfLoader").style.display = "none";
 
 };
 
-frame.src = pdfUrl;
+frame.src = resultLink;
+document.addEventListener("click",function(e){
+
+if(e.target.innerText==="Open"){
+
+document.getElementById("miniLoader").style.display="block";
+
+fetch(resultLink)
+.then(r=>r.blob())
+.then(blob=>{
+
+const url=URL.createObjectURL(blob);
+
+const a=document.createElement("a");
+
+a.href=url;
+a.download=resultLink.split('/').pop();
+
+document.body.appendChild(a);
+
+a.click();
+
+a.remove();
+
+document.getElementById("miniIcon").style.border="none";
+document.getElementById("miniIcon").style.animation="none";
+document.getElementById("miniIcon").style.display="flex";
+document.getElementById("miniIcon").style.alignItems="center";
+document.getElementById("miniIcon").style.justifyContent="center";
+document.getElementById("miniIcon").style.fontSize="28px";
+document.getElementById("miniIcon").style.color="#22c55e";
+document.getElementById("miniIcon").innerHTML="✓";
+
+setTimeout(()=>{
+
+document.getElementById("miniLoader").style.display="none";
+
+document.getElementById("miniIcon").innerHTML="";
+document.getElementById("miniIcon").setAttribute(
+"style",
+"width:35px;height:35px;border:4px solid #e5e7eb;border-top:4px solid #2563eb;border-radius:50%;animation:spin 1s linear infinite;"
+);
+
+},1500);
+
+});
+
+}
+
+});
 }else{
 
 error.innerHTML =
@@ -1179,36 +1273,20 @@ document.getElementById("examType").value;
 
 if(examType === "BACKPAPER"){
 
-if(
-this.value === "BSC" ||
-this.value === "BCOM" ||
-this.value === "BA"
-){
+let semesters =
+BACKPAPER_SEMESTERS[this.value] || [];
 
-sem.innerHTML += `
-<option value="1">1st Semester</option>
-<option value="2">2nd Semester</option>
-<option value="3">3rd Semester</option>
-<option value="4">4th Semester</option>
-<option value="5">5th Semester</option>
-<option value="6">6th Semester</option>
-`;
+semesters.forEach(function(s){
 
-}
+let suffix =
+s==1 ? "st" :
+s==2 ? "nd" :
+s==3 ? "rd" : "th";
 
-if(
-this.value === "MA" ||
-this.value === "BED"
-){
+sem.innerHTML +=
+`<option value="${s}">${s}${suffix} Semester</option>`;
 
-sem.innerHTML += `
-<option value="1">1st Semester</option>
-<option value="2">2nd Semester</option>
-<option value="3">3rd Semester</option>
-<option value="4">4th Semester</option>
-`;
-
-}
+});
 
 return;
 }
@@ -1244,6 +1322,18 @@ btn.innerHTML = "📄 Download Result";
 btn.style.background = "";
 
 btn.onclick = openFullResult;
+
+window.addEventListener("popstate", function(){
+
+let popup = document.getElementById("resultPopup");
+
+if(popup.style.display === "flex"){
+
+closePopup();
+
+}
+
+});
 </script>
 
 </body>
